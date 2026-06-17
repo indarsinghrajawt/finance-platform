@@ -92,6 +92,29 @@ export default function Sidebar() {
         </div>
 
       </div>
+      <div className="bg-[#111c33] rounded-xl p-4 mt-8">
+  <h3 className="text-white font-bold">
+    Market Status
+  </h3>
+
+  <p className="text-green-500 mt-2">
+    Open
+  </p>
+
+  <p className="text-slate-400 text-sm">
+    Next Close 03:30 PM
+  </p>
+</div>
+
+<div className="bg-[#111c33] rounded-xl p-4 mt-4">
+  <h3 className="text-white font-bold">
+    AI Model Accuracy
+  </h3>
+
+  <p className="text-green-500 text-3xl mt-2">
+    87.6%
+  </p>
+</div>
     </div>
   );
 }

@@ -160,22 +160,77 @@ export default function Dashboard() {
       </div>
 
       {/* Portfolio */}
-      <div className="bg-[#0e1729] rounded-xl p-5 mb-6">
-        <h3 className="text-white text-2xl mb-4">Portfolio Allocation</h3>
-        <div className="h-[350px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={portfolioData} dataKey="value" outerRadius={120} label>
-                {portfolioData.map((item, index) => (
-                  <Cell key={index} fill={COLORS[index]} />
-                ))}
-              </Pie>
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Portfolio Allocation */}
+<div className="bg-[#0e1729] rounded-xl p-5 mb-6 hover:shadow-xl transition-all duration-300">
+  <h3 className="text-white text-2xl mb-6">
+    Portfolio Allocation
+  </h3>
+
+  <div className="grid grid-cols-2 gap-6 items-center">
+
+    {/* Donut Chart */}
+    <div className="h-[320px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={portfolioData}
+            dataKey="value"
+            nameKey="name"
+            innerRadius={70}
+            outerRadius={120}
+            paddingAngle={5}
+            label
+          >
+            {portfolioData.map((item, index) => (
+              <Cell
+                key={index}
+                fill={COLORS[index % COLORS.length]}
+              />
+            ))}
+          </Pie>
+
+          <Legend />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* Portfolio Details */}
+    <div className="space-y-5">
+
+      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+        <span className="text-white">Reliance</span>
+        <span className="text-green-500">35%</span>
       </div>
 
+      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+        <span className="text-white">TCS</span>
+        <span className="text-blue-400">25%</span>
+      </div>
+
+      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+        <span className="text-white">Infosys</span>
+        <span className="text-yellow-400">20%</span>
+      </div>
+
+      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+        <span className="text-white">HDFC</span>
+        <span className="text-red-400">20%</span>
+      </div>
+
+      <div className="bg-[#111c33] p-4 rounded-lg">
+        <p className="text-slate-400 text-sm">
+          Total Portfolio Value
+        </p>
+
+        <p className="text-green-500 text-3xl font-bold mt-2">
+          ₹12,45,678
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+</div>
       {/* AI Section */}
       <div className="grid grid-cols-3 gap-5">
         <PredictionCard />
@@ -184,27 +239,36 @@ export default function Dashboard() {
       </div>
 
       {/* Watchlist */}
-      <div className="bg-[#0e1729] rounded-xl p-5 mt-6">
-        <h3 className="text-white text-2xl mb-4">Watchlist</h3>
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-[#111c33] p-4 rounded-lg">
-            <p className="text-white">AAPL</p>
-            <p className="text-green-500">+2.4%</p>
-          </div>
-          <div className="bg-[#111c33] p-4 rounded-lg">
-            <p className="text-white">TSLA</p>
-            <p className="text-red-500">-1.2%</p>
-          </div>
-          <div className="bg-[#111c33] p-4 rounded-lg">
-            <p className="text-white">NVDA</p>
-            <p className="text-green-500">+3.8%</p>
-          </div>
-          <div className="bg-[#111c33] p-4 rounded-lg">
-            <p className="text-white">MSFT</p>
-            <p className="text-green-500">+1.9%</p>
-          </div>
-        </div>
-      </div>
+      {/* Watchlist */}
+<div className="bg-[#0e1729] rounded-xl p-5 mt-6">
+  <h3 className="text-white text-xl mb-4">
+    Watchlist
+  </h3>
+
+  <div className="flex justify-between">
+
+    <div>
+      <p className="text-white">RELIANCE</p>
+      <p className="text-green-500">+1.48%</p>
+    </div>
+
+    <div>
+      <p className="text-white">TCS</p>
+      <p className="text-green-500">+2.35%</p>
+    </div>
+
+    <div>
+      <p className="text-white">HDFC</p>
+      <p className="text-green-500">+1.25%</p>
+    </div>
+
+    <div>
+      <p className="text-white">INFY</p>
+      <p className="text-green-500">+0.98%</p>
+    </div>
+
+  </div>
+</div>
 
       {/* Footer */}
       <div className="mt-10 text-center text-slate-500 border-t border-slate-800 pt-5">
