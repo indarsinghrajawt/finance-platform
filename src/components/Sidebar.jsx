@@ -1,3 +1,4 @@
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   BarChart3,
@@ -12,17 +13,17 @@ import {
 
 export default function Sidebar() {
   const menu = [
-    { name: "Dashboard", icon: LayoutDashboard },
-    { name: "Market Overview", icon: BarChart3 },
-    { name: "Stock Analysis", icon: TrendingUp },
-    { name: "Predictions", icon: LineChart },
-    { name: "News Sentiment", icon: Newspaper },
-    { name: "Portfolio", icon: Briefcase },
-    { name: "Watchlist", icon: Star },
-    { name: "Alerts", icon: Bell },
-    { name: "Settings", icon: Settings },
-  ];
-
+  { name: "Dashboard", icon: LayoutDashboard, path: "/" },
+  { name: "Market Overview", icon: BarChart3, path: "/market" },
+  { name: "Stock Analysis", icon: TrendingUp, path: "/analysis" },
+  { name: "Predictions", icon: LineChart, path: "/predictions" },
+  { name: "News Sentiment", icon: Newspaper, path: "/" },
+  { name: "Portfolio", icon: Briefcase, path: "/portfolio" },
+  { name: "Watchlist", icon: Star, path: "/" },
+  { name: "Alerts", icon: Bell, path: "/" },
+  { name: "Settings", icon: Settings, path: "/settings" },
+];
+const location = useLocation();
   return (
     <div className="w-64 min-h-screen bg-[#0e1729] border-r border-[#1b2b4b] p-5 flex-shrink-0 flex flex-col">
 
@@ -43,20 +44,21 @@ export default function Sidebar() {
           const Icon = item.icon;
 
           return (
-            <div
-              key={index}
-              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                index === 0
-                  ? "bg-indigo-600 text-white"
-                  : "text-slate-400 hover:bg-slate-800"
+            <Link
+            to={item.path}
+            key={index}
+            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+              location.pathname === item.path
+              ? "bg-indigo-600 text-white"
+              : "text-slate-400 hover:bg-slate-800"
               }`}
-            >
-              <Icon size={18} />
-              <span>{item.name}</span>
-            </div>
-          );
-        })}
-      </div>
+              >
+                <Icon size={18} />
+                <span>{item.name}</span>
+                </Link>
+                );
+                })}
+                </div>
 
       {/* Bottom Cards */}
       <div className="mt-auto">

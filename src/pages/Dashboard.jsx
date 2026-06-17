@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getStockData } from "../api/stockApi";
 import PredictionCard from "../components/PredictionCard";
 import TechnicalIndicators from "../components/TechnicalIndicators";
 import SentimentGauge from "../components/SentimentGauge";
@@ -19,6 +20,22 @@ import {
 
 export default function Dashboard() {
   const [symbol, setSymbol] = useState("AAPL");
+  const [stockInfo, setStockInfo] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    const data = await getStockData(symbol);
+    setStockInfo(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [symbol]);
 
   const stockData = [
     { day: "Mon", price: 182 },
@@ -35,11 +52,26 @@ export default function Dashboard() {
     { name: "HDFC", value: 20 },
   ];
 
+  const timeSeries = stockInfo?.["Time Series (Daily)"];
+
+  const liveStockData = timeSeries
+    ? Object.entries(timeSeries)
+        .slice(0, 7)
+        .reverse()
+        .map(([date, value]) => ({
+          day: date.slice(5),
+          price: Number(value["4. close"]),
+        }))
+    : stockData;
+
   const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444"];
 
   return (
-    <div className="flex-1 p-6 overflow-x-hidden">
-
+    <div
+      className={`flex-1 p-6 overflow-x-hidden ${
+        darkMode ? "bg-[#020817]" : "bg-white text-black"
+      }`}
+    >
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div className="flex gap-3">
@@ -50,8 +82,11 @@ export default function Dashboard() {
             placeholder="Search Stocks..."
             className="bg-[#0e1729] text-white px-4 py-3 rounded-xl w-72 border border-slate-700"
           />
-          <button className="bg-green-600 px-6 py-3 rounded-xl text-white">
-            Search
+          <button
+            onClick={loadData}
+            className="bg-green-600 px-6 py-3 rounded-xl text-white"
+          >
+            {loading ? "Loading..." : "Search"}
           </button>
         </div>
 
@@ -71,44 +106,68 @@ export default function Dashboard() {
             <p className="text-red-500 font-bold">83.12</p>
           </div>
 
-          <button className="bg-[#0e1729] p-3 rounded-full hover:bg-slate-800">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="bg-[#0e1729] p-3 rounded-full"
+          >
             <Bell size={18} className="text-white" />
           </button>
 
-          <button className="bg-[#0e1729] p-3 rounded-full hover:bg-slate-800">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="bg-[#0e1729] p-3 rounded-full"
+          >
             <Moon size={18} className="text-white" />
           </button>
 
-          <button className="bg-indigo-600 p-3 rounded-full hover:bg-indigo-700">
+          <button
+            onClick={() => setShowProfile(!showProfile)}
+            className="bg-indigo-600 p-3 rounded-full hover:bg-indigo-700"
+          >
             <User size={18} className="text-white" />
           </button>
         </div>
       </div>
 
+      {showNotifications && (
+        <div className="absolute right-32 top-24 bg-[#111c33] p-4 rounded-xl z-50">
+          <p className="text-white">No New Notifications</p>
+        </div>
+      )}
+
+      {showProfile && (
+        <div className="absolute right-10 top-24 bg-[#111c33] p-4 rounded-xl shadow-xl z-50">
+          <h3 className="text-white font-bold">Indar Singh Rajawat</h3>
+          <p className="text-slate-400">AI & Data Science Student</p>
+        </div>
+      )}
+
       <h1 className="text-white text-4xl font-bold mb-8">
-        AI Financial Intelligence Dashboard
+        Financial Intelligence Dashboard
       </h1>
 
       {/* Top Cards */}
       <div className="grid grid-cols-4 gap-5 mb-6">
-        <div className="bg-[#0e1729] rounded-xl p-5">
+        <div className="bg-[#0e1729] rounded-xl p-5 hover:scale-105 transition-all duration-300">
           <p className="text-slate-400">Current Stock</p>
           <h3 className="text-white text-3xl font-bold mt-2">{symbol}</h3>
-          <p className="text-green-500 mt-2">$194</p>
+          <p className="text-green-500 mt-2">
+            {stockInfo?.["Meta Data"]?.["2. Symbol"]}
+          </p>
         </div>
 
-        <div className="bg-[#0e1729] rounded-xl p-5">
+        <div className="bg-[#0e1729] rounded-xl p-5 hover:scale-105 transition-all duration-300">
           <p className="text-slate-400">Portfolio Value</p>
           <h3 className="text-white text-3xl font-bold mt-2">₹12,45,678</h3>
         </div>
 
-        <div className="bg-[#0e1729] rounded-xl p-5">
+        <div className="bg-[#0e1729] rounded-xl p-5 hover:scale-105 transition-all duration-300">
           <p className="text-slate-400">Best Performer</p>
           <h3 className="text-white text-2xl font-bold mt-2">Reliance</h3>
           <p className="text-green-500 mt-2">+4.35%</p>
         </div>
 
-        <div className="bg-[#0e1729] rounded-xl p-5">
+        <div className="bg-[#0e1729] rounded-xl p-5 hover:scale-105 transition-all duration-300">
           <p className="text-slate-400">Market Sentiment</p>
           <h3 className="text-green-500 text-3xl font-bold mt-2">Bullish</h3>
           <p className="text-slate-300 mt-2">75/100</p>
@@ -123,7 +182,7 @@ export default function Dashboard() {
           </h3>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stockData}>
+              <LineChart data={liveStockData}>
                 <XAxis dataKey="day" />
                 <YAxis />
                 <Tooltip />
@@ -159,78 +218,65 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Portfolio */}
       {/* Portfolio Allocation */}
-<div className="bg-[#0e1729] rounded-xl p-5 mb-6 hover:shadow-xl transition-all duration-300">
-  <h3 className="text-white text-2xl mb-6">
-    Portfolio Allocation
-  </h3>
+      <div className="bg-[#0e1729] rounded-xl p-5 mb-6 hover:shadow-xl transition-all duration-300">
+        <h3 className="text-white text-2xl mb-6">Portfolio Allocation</h3>
 
-  <div className="grid grid-cols-2 gap-6 items-center">
+        <div className="grid grid-cols-2 gap-6 items-center">
+          {/* Donut Chart */}
+          <div className="h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={portfolioData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={70}
+                  outerRadius={120}
+                  paddingAngle={5}
+                  label
+                >
+                  {portfolioData.map((item, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
 
-    {/* Donut Chart */}
-    <div className="h-[320px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={portfolioData}
-            dataKey="value"
-            nameKey="name"
-            innerRadius={70}
-            outerRadius={120}
-            paddingAngle={5}
-            label
-          >
-            {portfolioData.map((item, index) => (
-              <Cell
-                key={index}
-                fill={COLORS[index % COLORS.length]}
-              />
-            ))}
-          </Pie>
+          {/* Portfolio Details */}
+          <div className="space-y-5">
+            <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+              <span className="text-white">Reliance</span>
+              <span className="text-green-500">35%</span>
+            </div>
 
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+            <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+              <span className="text-white">TCS</span>
+              <span className="text-blue-400">25%</span>
+            </div>
 
-    {/* Portfolio Details */}
-    <div className="space-y-5">
+            <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+              <span className="text-white">Infosys</span>
+              <span className="text-yellow-400">20%</span>
+            </div>
 
-      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
-        <span className="text-white">Reliance</span>
-        <span className="text-green-500">35%</span>
+            <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
+              <span className="text-white">HDFC</span>
+              <span className="text-red-400">20%</span>
+            </div>
+
+            <div className="bg-[#111c33] p-4 rounded-lg">
+              <p className="text-slate-400 text-sm">Total Portfolio Value</p>
+              <p className="text-green-500 text-3xl font-bold mt-2">
+                ₹12,45,678
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
-        <span className="text-white">TCS</span>
-        <span className="text-blue-400">25%</span>
-      </div>
-
-      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
-        <span className="text-white">Infosys</span>
-        <span className="text-yellow-400">20%</span>
-      </div>
-
-      <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
-        <span className="text-white">HDFC</span>
-        <span className="text-red-400">20%</span>
-      </div>
-
-      <div className="bg-[#111c33] p-4 rounded-lg">
-        <p className="text-slate-400 text-sm">
-          Total Portfolio Value
-        </p>
-
-        <p className="text-green-500 text-3xl font-bold mt-2">
-          ₹12,45,678
-        </p>
-      </div>
-
-    </div>
-
-  </div>
-</div>
       {/* AI Section */}
       <div className="grid grid-cols-3 gap-5">
         <PredictionCard />
@@ -239,42 +285,36 @@ export default function Dashboard() {
       </div>
 
       {/* Watchlist */}
-      {/* Watchlist */}
-<div className="bg-[#0e1729] rounded-xl p-5 mt-6">
-  <h3 className="text-white text-xl mb-4">
-    Watchlist
-  </h3>
+      <div className="bg-[#0e1729] rounded-xl p-5 mt-6">
+        <h3 className="text-white text-xl mb-4">Watchlist</h3>
 
-  <div className="flex justify-between">
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-[#111c33] p-4 rounded-lg hover:bg-[#182847] transition-all">
+            <p className="text-white">RELIANCE</p>
+            <p className="text-green-500">+1.48%</p>
+          </div>
 
-    <div>
-      <p className="text-white">RELIANCE</p>
-      <p className="text-green-500">+1.48%</p>
-    </div>
+          <div className="bg-[#111c33] p-4 rounded-lg">
+            <p className="text-white">TCS</p>
+            <p className="text-green-500">+2.35%</p>
+          </div>
 
-    <div>
-      <p className="text-white">TCS</p>
-      <p className="text-green-500">+2.35%</p>
-    </div>
+          <div className="bg-[#111c33] p-4 rounded-lg">
+            <p className="text-white">HDFC</p>
+            <p className="text-green-500">+1.25%</p>
+          </div>
 
-    <div>
-      <p className="text-white">HDFC</p>
-      <p className="text-green-500">+1.25%</p>
-    </div>
-
-    <div>
-      <p className="text-white">INFY</p>
-      <p className="text-green-500">+0.98%</p>
-    </div>
-
-  </div>
-</div>
+          <div className="bg-[#111c33] p-4 rounded-lg">
+            <p className="text-white">INFY</p>
+            <p className="text-green-500">+0.98%</p>
+          </div>
+        </div>
+      </div>
 
       {/* Footer */}
       <div className="mt-10 text-center text-slate-500 border-t border-slate-800 pt-5">
-        © 2026 AI Financial Intelligence Platform | Built by Indar Singh Rajawat
+        © 2026 Financial Intelligence Platform | Built by Indar Singh Rajawat
       </div>
-
     </div>
   );
 }
