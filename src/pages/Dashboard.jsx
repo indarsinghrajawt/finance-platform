@@ -312,8 +312,11 @@ export default function Dashboard() {
       </div>
 
       {/* Footer */}
-      <div className="mt-10 text-center text-slate-500 border-t border-slate-800 pt-5">
-        © 2026 Financial Intelligence Platform | Built by Indar Singh Rajawat
+      <div className="mt-10 text-center text-slate-400 border-t border-slate-800 pt-5">
+        <p>© 2026 AI Financial Intelligence Platform</p>
+        <p className="mt-2 text-indigo-400">
+          Built by Indar Singh Rajawat
+        </p>
       </div>
     </div>
   );
