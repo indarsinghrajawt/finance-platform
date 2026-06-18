@@ -3,7 +3,12 @@ import { getStockData } from "../api/stockApi";
 import PredictionCard from "../components/PredictionCard";
 import TechnicalIndicators from "../components/TechnicalIndicators";
 import SentimentGauge from "../components/SentimentGauge";
+import AIRecommendation from "../components/AIRecommendation";
 import { Bell, Moon, User } from "lucide-react";
+import { signOut } from "firebase/auth";
+import { auth } from "../firebase";
+import { db } from "../firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 import {
   ResponsiveContainer,
@@ -25,6 +30,31 @@ export default function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  const logout = async () => {
+    await signOut(auth);
+    window.location.reload();
+  };
+
+  const savePortfolio = async () => {
+    try {
+      if (!auth.currentUser) {
+        alert("Please login first");
+        return;
+      }
+
+      await setDoc(doc(db, "portfolio", auth.currentUser.uid), {
+        stock: "AAPL",
+        portfolioValue: "1245678",
+        sentiment: "Bullish",
+      });
+
+      alert("Portfolio Saved Successfully ✅");
+    } catch (error) {
+      console.log(error);
+      alert(error.message);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -121,8 +151,8 @@ export default function Dashboard() {
           </button>
 
           <button
-            onClick={() => setShowProfile(!showProfile)}
-            className="bg-indigo-600 p-3 rounded-full hover:bg-indigo-700"
+            onClick={logout}
+            className="bg-red-600 p-3 rounded-full hover:bg-red-700"
           >
             <User size={18} className="text-white" />
           </button>
@@ -145,6 +175,20 @@ export default function Dashboard() {
       <h1 className="text-white text-4xl font-bold mb-8">
         Financial Intelligence Dashboard
       </h1>
+
+      <p className="text-slate-400 mt-2">
+        Welcome, {auth.currentUser?.email}
+      </p>
+
+      {/* Hero Banner */}
+      <div className="bg-gradient-to-r from-indigo-600 to-green-600 rounded-2xl p-6 mb-6">
+        <h2 className="text-white text-3xl font-bold">
+          Welcome Back, Indar 👋
+        </h2>
+        <p className="text-white mt-2">
+          Track stocks, portfolio performance and AI predictions.
+        </p>
+      </div>
 
       {/* Top Cards */}
       <div className="grid grid-cols-4 gap-5 mb-6">
@@ -278,10 +322,11 @@ export default function Dashboard() {
       </div>
 
       {/* AI Section */}
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-4 gap-5">
         <PredictionCard />
         <TechnicalIndicators />
         <SentimentGauge />
+        <AIRecommendation />
       </div>
 
       {/* Watchlist */}
@@ -310,6 +355,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <button
+        onClick={savePortfolio}
+        className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl text-white mt-5"
+      >
+        Save Portfolio
+      </button>
 
       {/* Footer */}
       <div className="mt-10 text-center text-slate-400 border-t border-slate-800 pt-5">

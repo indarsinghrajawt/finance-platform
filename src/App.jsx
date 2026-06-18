@@ -10,20 +10,17 @@ import Portfolio from "./pages/Portfolio";
 import Settings from "./pages/Settings";
 
 export default function App() {
-  return (
-    <BrowserRouter>
-      <div className="flex min-h-screen overflow-x-hidden bg-[#020817]">
-        <Sidebar />
+return ( <BrowserRouter> <div className="flex min-h-screen overflow-x-hidden bg-[#020817]"> <Sidebar />
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/market" element={<MarketOverview />} />
+      <Route path="/analysis" element={<StockAnalysis />} />
+      <Route path="/predictions" element={<Predictions />} />
+      <Route path="/portfolio" element={<Portfolio />} />
+      <Route path="/settings" element={<Settings />} />
+    </Routes>
+  </div>
+</BrowserRouter>
 
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/market" element={<MarketOverview />} />
-          <Route path="/analysis" element={<StockAnalysis />} />
-          <Route path="/predictions" element={<Predictions />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </div>
-    </BrowserRouter>
-  );
+);
 }
