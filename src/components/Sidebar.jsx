@@ -1,35 +1,38 @@
 import { Link, useLocation } from "react-router-dom";
+
 import {
   LayoutDashboard,
   BarChart3,
   TrendingUp,
-  Newspaper,
   Briefcase,
   LineChart,
+  Settings,
+  Newspaper,
   Star,
   Bell,
-  Settings,
 } from "lucide-react";
 
 export default function Sidebar() {
+  const location = useLocation();
+
   const menu = [
-  { name: "Dashboard", icon: LayoutDashboard, path: "/" },
-  { name: "Market Overview", icon: BarChart3, path: "/market" },
-  { name: "Stock Analysis", icon: TrendingUp, path: "/analysis" },
-  { name: "Predictions", icon: LineChart, path: "/predictions" },
-  { name: "News Sentiment", icon: Newspaper, path: "/" },
-  { name: "Portfolio", icon: Briefcase, path: "/portfolio" },
-  { name: "Watchlist", icon: Star, path: "/" },
-  { name: "Alerts", icon: Bell, path: "/" },
-  { name: "Settings", icon: Settings, path: "/settings" },
-];
-const location = useLocation();
+    { name: "Dashboard", icon: LayoutDashboard, path: "/" },
+    { name: "Market Overview", icon: BarChart3, path: "/market" },
+    { name: "Stock Analysis", icon: TrendingUp, path: "/analysis" },
+    { name: "Predictions", icon: LineChart, path: "/predictions" },
+    { name: "News Sentiment", icon: Newspaper, path: "/news" },
+    { name: "Portfolio", icon: Briefcase, path: "/portfolio" },
+    { name: "Watchlist", icon: Star, path: "/watchlist" },
+    { name: "Alerts", icon: Bell, path: "/alerts" },
+    { name: "Settings", icon: Settings, path: "/settings" },
+  ];
+
   return (
-    <div className="w-64 min-h-screen bg-[#0e1729] border-r border-[#1b2b4b] p-5 flex-shrink-0 flex flex-col">
+    <div className="w-72 h-screen sticky top-0 bg-[#071122] border-r border-[#16243d] p-4 flex flex-col overflow-y-auto">
 
       {/* Logo */}
       <div className="mb-8">
-        <h1 className="text-white text-2xl font-bold">
+        <h1 className="text-white text-3xl font-bold">
           AI Financial
         </h1>
 
@@ -45,31 +48,29 @@ const location = useLocation();
 
           return (
             <Link
-            to={item.path}
-            key={index}
-            className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-              location.pathname === item.path
-              ? "bg-indigo-600 text-white"
-              : "text-slate-400 hover:bg-slate-800"
-              }`}
-              >
-                <Icon size={18} />
-                <span>{item.name}</span>
-                </Link>
-                );
-                })}
-                </div>
+              key={index}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${location.pathname === item.path
+                  ? "bg-indigo-600 text-white shadow-lg"
+                  : "text-slate-400 hover:bg-[#111c33] hover:text-white"
+                }`}
+            >
+              <Icon size={18} />
+              <span>{item.name}</span>
+            </Link>
+          );
+        })}
+      </div>
 
       {/* Bottom Cards */}
-      <div className="mt-auto">
+      <div className="mt-auto space-y-4 pt-6">
 
-        {/* Market Status */}
-        <div className="mt-6 bg-[#111827] p-4 rounded-xl">
-          <h3 className="text-white font-semibold">
+        <div className="bg-[#111827] rounded-2xl p-4 shadow-md">
+          <h3 className="text-white font-semibold text-lg">
             Market Status
           </h3>
 
-          <p className="text-green-500 mt-2 font-semibold">
+          <p className="text-green-500 font-bold mt-3 text-xl">
             Open
           </p>
 
@@ -78,45 +79,21 @@ const location = useLocation();
           </p>
         </div>
 
-        {/* AI Accuracy */}
-        <div className="mt-4 bg-[#111827] p-4 rounded-xl">
-          <h3 className="text-white font-semibold">
-            AI Model Accuracy
+        <div className="bg-[#111827] rounded-2xl p-4 shadow-md">
+          <h3 className="text-white font-semibold text-lg">
+            Model Accuracy
           </h3>
 
-          <p className="text-green-500 text-2xl font-bold mt-2">
+          <p className="text-green-400 text-4xl font-bold mt-3">
             87.6%
           </p>
 
-          <p className="text-slate-400 text-sm">
+          <p className="text-green-500 text-sm mt-2">
             +2.4% vs last week
           </p>
         </div>
 
       </div>
-      <div className="bg-[#111c33] rounded-xl p-4 mt-8">
-  <h3 className="text-white font-bold">
-    Market Status
-  </h3>
-
-  <p className="text-green-500 mt-2">
-    Open
-  </p>
-
-  <p className="text-slate-400 text-sm">
-    Next Close 03:30 PM
-  </p>
-</div>
-
-<div className="bg-[#111c33] rounded-xl p-4 mt-4">
-  <h3 className="text-white font-bold">
-    AI Model Accuracy
-  </h3>
-
-  <p className="text-green-500 text-3xl mt-2">
-    87.6%
-  </p>
-</div>
     </div>
   );
 }
