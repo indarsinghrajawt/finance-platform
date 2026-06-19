@@ -25,12 +25,17 @@ export default function Dashboard() {
   const [darkMode, setDarkMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [news, setNews] = useState([]);
-  const [watchlist, setWatchlist] = useState([
-    "RELIANCE",
-    "TCS",
-    "HDFC",
-    "INFY",
-  ]);
+  const [watchlist, setWatchlist] = useState(() => {
+    const saved = localStorage.getItem("watchlist");
+    return saved
+      ? JSON.parse(saved)
+      : [
+        { symbol: "RELIANCE", price: 2912, change: "+4.35%" },
+        { symbol: "TCS", price: 4120, change: "+2.10%" },
+        { symbol: "HDFC", price: 1685, change: "+1.22%" },
+        { symbol: "INFY", price: 1478, change: "+0.98%" },
+      ];
+  });
 
   const loadData = async () => {
     setLoading(true);
@@ -49,21 +54,33 @@ export default function Dashboard() {
   };
 
   const addToWatchlist = () => {
-    if (!symbol) return;
-    const upper = symbol.toUpperCase();
-    if (!watchlist.includes(upper)) {
-      setWatchlist([...watchlist, upper]);
+    if (!symbol || !stockInfo) return;
+
+    const latestPrice = liveStockData[liveStockData.length - 1]?.price;
+
+    const stockItem = {
+      symbol: symbol.toUpperCase(),
+      price: latestPrice,
+      change: "+1.48%",
+    };
+
+    const exists = watchlist.find(
+      (item) => item.symbol === stockItem.symbol
+    );
+
+    if (!exists) {
+      setWatchlist([...watchlist, stockItem]);
     }
   };
 
   const removeFromWatchlist = (stock) => {
-    setWatchlist(watchlist.filter((s) => s !== stock));
+    setWatchlist(watchlist.filter((s) => s.symbol !== stock.symbol));
   };
 
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(20);
-    doc.text("Financial Intelligence Platform", 20, 20);
+    doc.text("AI Financial Intelligence Platform", 20, 20);
     doc.setFontSize(14);
     doc.text(`Stock: ${symbol}`, 20, 40);
     doc.text("Portfolio Value: ₹12,45,678", 20, 50);
@@ -76,6 +93,10 @@ export default function Dashboard() {
     loadData();
     loadNews();
   }, [symbol]);
+
+  useEffect(() => {
+    localStorage.setItem("watchlist", JSON.stringify(watchlist));
+  }, [watchlist]);
 
   const stockData = [
     { day: "15 May", price: 2850 },
@@ -175,6 +196,15 @@ export default function Dashboard() {
           >
             <Moon size={18} className="text-white" />
           </button>
+
+          {/* ✅ FIX 1: Profile button jo setShowProfile(true) call kare */}
+          <button
+            onClick={() => setShowProfile(!showProfile)}
+            className="bg-indigo-600 hover:bg-indigo-700 w-10 h-10 rounded-full text-white font-bold transition-all"
+            title="Profile"
+          >
+            I
+          </button>
         </div>
       </div>
 
@@ -204,7 +234,7 @@ export default function Dashboard() {
       </div>
 
       {/* Top Cards */}
-      <div className="grid grid-cols-5 gap-5 mb-6">
+      <div className="grid grid-cols-6 gap-5 mb-6">
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">Current Stock</p>
           <h3 className="text-white text-3xl font-bold mt-2">{symbol}</h3>
@@ -229,6 +259,11 @@ export default function Dashboard() {
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">AI Accuracy</p>
           <h3 className="text-green-500 text-3xl font-bold mt-2">87.6%</h3>
+        </div>
+        <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
+          <p className="text-slate-400">AI Market Score</p>
+          <h3 className="text-green-500 text-3xl font-bold mt-2">87/100</h3>
+          <p className="text-slate-300 mt-2">Strong Bullish Signal</p>
         </div>
       </div>
 
@@ -272,7 +307,9 @@ export default function Dashboard() {
       <div className="bg-[#0e1729] rounded-xl p-5 mb-6 hover:shadow-xl transition-all duration-300">
         <h3 className="text-white text-2xl mb-6">Portfolio Allocation</h3>
         <div className="grid grid-cols-2 gap-6 items-center">
-          <div className="h-[320px]">
+
+          {/* ✅ FIX 3: relative wrapper + center value overlay */}
+          <div className="relative h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -291,7 +328,14 @@ export default function Dashboard() {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
+
+            {/* Center overlay */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <h2 className="text-white text-3xl font-bold">₹12.4L</h2>
+              <p className="text-slate-400">Portfolio</p>
+            </div>
           </div>
+
           <div className="space-y-5">
             <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
               <span className="text-white">Reliance</span>
@@ -317,18 +361,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* AI Section */}
-      <div className="grid grid-cols-4 gap-5">
-        <PredictionCard />
-        <TechnicalIndicators />
-        <SentimentGauge />
-        <AIRecommendation
-          action={aiSignal.action}
-          confidence={aiSignal.confidence}
-          color={aiSignal.color}
-        />
-      </div>
-
       {/* Market Movers */}
       <div className="bg-[#0e1729] rounded-xl p-5 mt-6">
         <h3 className="text-white text-xl mb-4">Top Market Movers</h3>
@@ -348,8 +380,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ✅ UPDATED: Dynamic Watchlist with price + remove */}
-      <div className="bg-[#0e1729] rounded-xl p-5 mt-6">
+      {/* Watchlist */}
+       <div className="bg-[#0e1729] rounded-xl p-5 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-white text-xl">Watchlist</h3>
           <span className="text-slate-400 text-sm">{watchlist.length} stocks</span>
@@ -365,7 +397,7 @@ export default function Dashboard() {
               <div key={index} className="bg-[#111c33] p-4 rounded-xl hover:border hover:border-indigo-500 transition-all">
                 <div className="flex justify-between">
                   <h3 className="text-white font-bold">{stock}</h3>
-
+                  
                 </div>
                 <p className="text-green-500 mt-2">₹ 2,912.40</p>
                 <p className="text-green-400 text-sm">+1.48%</p>
@@ -375,9 +407,18 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ✅ NEW: Save Portfolio + Export PDF Buttons */}
+      {/* Save Portfolio + Export PDF */}
       <div className="flex gap-4 mt-6">
-        <button className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl text-white font-semibold transition-all">
+        <button
+          onClick={() => {
+            localStorage.setItem(
+              "portfolio",
+              JSON.stringify(portfolioData)
+            );
+            alert("Portfolio Saved!");
+          }}
+          className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl text-white font-semibold transition-all"
+        >
           Save Portfolio
         </button>
         <button
@@ -391,7 +432,7 @@ export default function Dashboard() {
       {/* Footer */}
       <footer className="mt-12 border-t border-slate-800 pt-6 text-center">
         <p className="text-slate-400">
-          © 2026 Financial Intelligence Platform
+          © 2026 AI Financial Intelligence Platform
         </p>
         <p className="text-indigo-400 mt-2">
           Built by Indar Singh Rajawat
