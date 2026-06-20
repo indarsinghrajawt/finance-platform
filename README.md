@@ -40,7 +40,7 @@ src/
 Clone the repository:
 
 ```bash
-git clone https://github.com/indarsinghrajawt/finance-platform.git
+https://github.com/indarsinghrajawt/finance-platform
 ```
 
 Go to project folder:
