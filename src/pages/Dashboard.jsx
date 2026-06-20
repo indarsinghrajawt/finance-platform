@@ -6,7 +6,7 @@ import TechnicalIndicators from "../components/TechnicalIndicators";
 import SentimentGauge from "../components/SentimentGauge";
 import AIRecommendation from "../components/AIRecommendation";
 import TradingChart from "../components/TradingChart";
-import { Bell, Moon } from "lucide-react";
+import { Bell, Moon, Loader2 } from "lucide-react";
 import jsPDF from "jspdf";
 
 import {
@@ -17,26 +17,51 @@ import {
   Legend,
 } from "recharts";
 
+const INDIAN_STOCKS = ["RELIANCE", "TCS", "INFY", "HDFC", "WIPRO", "BAJAJ", "NIFTY", "SENSEX"];
+
 export default function Dashboard() {
   const [symbol, setSymbol] = useState("AAPL");
   const [stockInfo, setStockInfo] = useState(null);
+  const [selectedStock, setSelectedStock] = useState("AAPL");
+  const [stockPrice, setStockPrice] = useState("--");
+  const [lastUpdated, setLastUpdated] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [loading, setLoading] = useState(false);
   const [news, setNews] = useState([]);
-  const [watchlist, setWatchlist] = useState([
-    "RELIANCE",
-    "TCS",
-    "HDFC",
-    "INFY",
+
+  const [recentSearches, setRecentSearches] = useState(
+    () => JSON.parse(localStorage.getItem("recentSearches") || "[]")
+  );
+
+  // Watchlist fixed - read-only
+  const [watchlist] = useState([
+    { symbol: "RELIANCE", price: 2912.40, change: "+1.48%" },
+    { symbol: "TCS", price: 4120.50, change: "+2.10%" },
+    { symbol: "HDFC", price: 1685.25, change: "+0.95%" },
+    { symbol: "INFY", price: 1478.80, change: "+1.22%" },
   ]);
+
+  const isIndianStock = (s) => INDIAN_STOCKS.includes(s?.toUpperCase());
+  const formatPrice = (price, stock) =>
+    price !== "--" ? `${isIndianStock(stock) ? "₹" : "$"}${price}` : "--";
 
   const loadData = async () => {
     setLoading(true);
     const data = await getStockData(symbol);
     setStockInfo(data);
+    setSelectedStock(symbol.toUpperCase());
+    setStockPrice(data?.c || "--");
+    setLastUpdated(new Date().toLocaleTimeString());
     setLoading(false);
+  };
+
+  const refreshData = async (currentSymbol) => {
+    const data = await getStockData(currentSymbol);
+    setStockInfo(data);
+    setStockPrice(data?.c || "--");
+    setLastUpdated(new Date().toLocaleTimeString());
   };
 
   const loadNews = async () => {
@@ -48,16 +73,13 @@ export default function Dashboard() {
     }
   };
 
-  const addToWatchlist = () => {
+  const handleSearch = () => {
     if (!symbol) return;
     const upper = symbol.toUpperCase();
-    if (!watchlist.includes(upper)) {
-      setWatchlist([...watchlist, upper]);
-    }
-  };
-
-  const removeFromWatchlist = (stock) => {
-    setWatchlist(watchlist.filter((s) => s !== stock));
+    const updated = [upper, ...recentSearches.filter((s) => s !== upper)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem("recentSearches", JSON.stringify(updated));
+    loadData();
   };
 
   const exportPDF = () => {
@@ -72,20 +94,24 @@ export default function Dashboard() {
     doc.save("portfolio-report.pdf");
   };
 
+  // Load once on mount
   useEffect(() => {
     loadData();
     loadNews();
-  }, [symbol]);
+  }, []);
 
-  const stockData = [
-    { day: "15 May", price: 2850 },
-    { day: "16 May", price: 2910 },
-    { day: "17 May", price: 2880 },
-    { day: "18 May", price: 2960 },
-    { day: "19 May", price: 3010 },
-    { day: "20 May", price: 3075 },
-    { day: "21 May", price: 3120 },
-  ];
+  // 5 sec auto-refresh - selectedStock use karo, symbol nahi
+  useEffect(() => {
+    if (!selectedStock) return;
+    const interval = setInterval(() => { refreshData(selectedStock); }, 5000);
+    return () => clearInterval(interval);
+  }, [selectedStock]);
+
+  // News refresh every 60 sec
+  useEffect(() => {
+    const newsInterval = setInterval(() => { loadNews(); }, 60000);
+    return () => clearInterval(newsInterval);
+  }, []);
 
   const portfolioData = [
     { name: "Reliance", value: 35 },
@@ -94,60 +120,71 @@ export default function Dashboard() {
     { name: "HDFC", value: 20 },
   ];
 
-  const timeSeries = stockInfo?.["Time Series (Daily)"];
-
-  const liveStockData = timeSeries
-    ? Object.entries(timeSeries)
-      .slice(0, 7)
-      .reverse()
-      .map(([date, value]) => ({
-        day: date.slice(5),
-        price: Number(value["4. close"]),
-      }))
-    : stockData;
-
   const getRecommendation = () => {
-    if (!liveStockData || liveStockData.length < 2) {
-      return { action: "HOLD", confidence: 50, color: "yellow" };
-    }
-    const latest = liveStockData[liveStockData.length - 1].price;
-    const previous = liveStockData[liveStockData.length - 2].price;
-    if (latest > previous) return { action: "BUY", confidence: 85, color: "green" };
-    if (latest < previous) return { action: "SELL", confidence: 80, color: "red" };
+    const change = stockInfo?.d;
+    if (change === undefined || change === null) return { action: "HOLD", confidence: 50, color: "yellow" };
+    if (change > 0) return { action: "BUY", confidence: 85, color: "green" };
+    if (change < 0) return { action: "SELL", confidence: 80, color: "red" };
     return { action: "HOLD", confidence: 60, color: "yellow" };
   };
 
   const aiSignal = getRecommendation();
-
   const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444"];
 
+  const bestPerformer = watchlist.reduce((a, b) =>
+    parseFloat(a.change) > parseFloat(b.change) ? a : b
+  );
+
   return (
-    <div
-      className={`flex-1 p-6 overflow-x-hidden ${darkMode ? "bg-[#020817]" : "bg-white text-black"
-        }`}
-    >
+    <div className={`flex-1 p-6 overflow-x-hidden ${darkMode ? "bg-[#020817]" : "bg-white text-black"}`}>
+
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-            placeholder="Search Stocks..."
-            className="bg-[#0f172a] border border-slate-700 text-white px-5 py-3 rounded-2xl w-80 focus:outline-none focus:border-indigo-500"
-          />
-          <button
-            onClick={loadData}
-            className="bg-green-600 px-6 py-3 rounded-xl text-white"
-          >
-            {loading ? "Loading..." : "Search"}
-          </button>
-          <button
-            onClick={addToWatchlist}
-            className="bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-xl text-white font-semibold transition-all"
-          >
-            + Add
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="Search Stocks..."
+              className="bg-[#0f172a] border border-slate-700 text-white px-5 py-3 rounded-2xl w-80 focus:outline-none focus:border-indigo-500"
+            />
+            <button
+              onClick={handleSearch}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 px-6 py-3 rounded-xl text-white flex items-center gap-2 transition-all"
+            >
+              {loading ? (
+                <><Loader2 size={18} className="animate-spin" /> Loading...</>
+              ) : "Search"}
+            </button>
+          </div>
+
+          {/* Recent Searches with Clear */}
+          {recentSearches.length > 0 && (
+            <div className="flex gap-2 items-center">
+              <span className="text-slate-500 text-xs">Recent:</span>
+              {recentSearches.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setSymbol(s); }}
+                  className="text-xs bg-[#0e1729] text-indigo-400 px-3 py-1 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"
+                >
+                  {s}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  localStorage.removeItem("recentSearches");
+                  setRecentSearches([]);
+                }}
+                className="text-red-400 text-xs hover:text-red-500 transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
@@ -163,6 +200,7 @@ export default function Dashboard() {
             <p className="text-slate-400 text-sm">USD/INR</p>
             <p className="text-red-500 font-bold">83.12</p>
           </div>
+
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             className="bg-[#0e1729] p-3 rounded-full"
@@ -175,11 +213,17 @@ export default function Dashboard() {
           >
             <Moon size={18} className="text-white" />
           </button>
+          <button
+            onClick={() => setShowProfile(!showProfile)}
+            className="bg-indigo-600 hover:bg-indigo-700 w-10 h-10 rounded-full text-white font-bold transition-all"
+          >
+            I
+          </button>
         </div>
       </div>
 
       {showNotifications && (
-        <div className="absolute right-32 top-24 bg-[#111c33] p-4 rounded-xl z-50">
+        <div className="absolute right-32 top-24 bg-[#111c33] p-4 rounded-xl z-50 shadow-xl">
           <p className="text-white">No New Notifications</p>
         </div>
       )}
@@ -204,22 +248,37 @@ export default function Dashboard() {
       </div>
 
       {/* Top Cards */}
-      <div className="grid grid-cols-5 gap-5 mb-6">
+      <div className="grid grid-cols-6 gap-5 mb-6">
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">Current Stock</p>
-          <h3 className="text-white text-3xl font-bold mt-2">{symbol}</h3>
-          <p className="text-green-500 mt-2">
-            {stockInfo?.["Meta Data"]?.["2. Symbol"]}
+          <h3 className="text-white text-3xl font-bold mt-2">{selectedStock}</h3>
+          <p className="text-green-500 mt-1 text-lg font-semibold">
+            {formatPrice(stockPrice, selectedStock)}
           </p>
+          {stockInfo?.dp != null && (
+            <p className="mt-1">
+              {stockInfo.dp > 0 ? (
+                <span className="text-green-500">▲ {stockInfo.dp.toFixed(2)}%</span>
+              ) : (
+                <span className="text-red-500">▼ {Math.abs(stockInfo.dp).toFixed(2)}%</span>
+              )}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <span className="text-green-500 text-xs">LIVE</span>
+          </div>
+          <p className="text-slate-400 text-xs mt-1">Updated: {lastUpdated}</p>
         </div>
+
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">Portfolio Value</p>
           <h3 className="text-white text-3xl font-bold mt-2">₹12,45,678</h3>
         </div>
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">Best Performer</p>
-          <h3 className="text-white text-2xl font-bold mt-2">Reliance</h3>
-          <p className="text-green-500 mt-2">+4.35%</p>
+          <h3 className="text-white text-2xl font-bold mt-2">{bestPerformer.symbol}</h3>
+          <p className="text-green-500 mt-2">{bestPerformer.change}</p>
         </div>
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">Market Sentiment</p>
@@ -230,6 +289,11 @@ export default function Dashboard() {
           <p className="text-slate-400">AI Accuracy</p>
           <h3 className="text-green-500 text-3xl font-bold mt-2">87.6%</h3>
         </div>
+        <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
+          <p className="text-slate-400">Portfolio Growth</p>
+          <h3 className="text-green-500 text-3xl font-bold mt-2">+12.8%</h3>
+          <p className="text-slate-400 text-sm mt-1">This Month</p>
+        </div>
       </div>
 
       {/* Chart + News */}
@@ -237,20 +301,19 @@ export default function Dashboard() {
         <div className="col-span-2 bg-[#0e1729] rounded-xl p-5">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="text-white text-2xl font-semibold">
-                Stock Price Analysis
-              </h3>
+              <h3 className="text-white text-2xl font-semibold">Stock Price Analysis</h3>
               <p className="text-slate-400">{symbol} • Live Market Trend</p>
             </div>
             <div className="text-right">
               <p className="text-white text-3xl font-bold">
-                ₹{liveStockData[liveStockData.length - 1]?.price}
+                {stockInfo?.c ? formatPrice(stockInfo.c, selectedStock) : "Loading..."}
               </p>
-              <p className="text-green-500">+4.26%</p>
+              <p className={stockInfo?.dp >= 0 ? "text-green-500" : "text-red-500"}>
+                {stockInfo?.dp ? `${stockInfo.dp.toFixed(2)}%` : "--"}
+              </p>
             </div>
           </div>
-
-          <div className="mt-4 rounded-xl overflow-hidden">
+          <div className="h-[500px] rounded-xl overflow-hidden">
             <TradingChart />
           </div>
         </div>
@@ -259,9 +322,16 @@ export default function Dashboard() {
           <h3 className="text-white text-2xl font-semibold mb-6">Latest News</h3>
           <div className="space-y-6">
             {news.map((item, index) => (
-              <div key={index}>
-                <p className="text-white">{item.title}</p>
-                <span className="text-green-500">{item.source?.name}</span>
+              <div key={index} className="border-b border-slate-800 pb-4 last:border-0">
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-white hover:text-indigo-400 transition-colors cursor-pointer"
+                >
+                  {item.title}
+                </a>
+                <span className="block text-green-500 text-sm mt-1">{item.source?.name}</span>
               </div>
             ))}
           </div>
@@ -272,7 +342,7 @@ export default function Dashboard() {
       <div className="bg-[#0e1729] rounded-xl p-5 mb-6 hover:shadow-xl transition-all duration-300">
         <h3 className="text-white text-2xl mb-6">Portfolio Allocation</h3>
         <div className="grid grid-cols-2 gap-6 items-center">
-          <div className="h-[320px]">
+          <div className="relative h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -291,7 +361,12 @@ export default function Dashboard() {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <h2 className="text-white text-3xl font-bold">₹12.4L</h2>
+              <p className="text-slate-400">Portfolio</p>
+            </div>
           </div>
+
           <div className="space-y-5">
             <div className="bg-[#111c33] p-4 rounded-lg flex justify-between">
               <span className="text-white">Reliance</span>
@@ -334,48 +409,43 @@ export default function Dashboard() {
         <h3 className="text-white text-xl mb-4">Top Market Movers</h3>
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-[#111c33] p-4 rounded-lg">
-            <p className="text-white">NVDA</p>
+            <p className="text-slate-400 text-xs mb-1">Top Gainer</p>
+            <p className="text-white font-bold">NVDA</p>
             <p className="text-green-500">+6.21%</p>
           </div>
           <div className="bg-[#111c33] p-4 rounded-lg">
-            <p className="text-white">META</p>
+            <p className="text-slate-400 text-xs mb-1">Top Gainer</p>
+            <p className="text-white font-bold">META</p>
             <p className="text-green-500">+4.85%</p>
           </div>
           <div className="bg-[#111c33] p-4 rounded-lg">
-            <p className="text-white">TSLA</p>
+            <p className="text-slate-400 text-xs mb-1">Top Loser</p>
+            <p className="text-white font-bold">TSLA</p>
             <p className="text-red-500">-2.14%</p>
           </div>
         </div>
       </div>
 
-      {/* ✅ UPDATED: Dynamic Watchlist with price + remove */}
+      {/* Watchlist */}
       <div className="bg-[#0e1729] rounded-xl p-5 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-white text-xl">Watchlist</h3>
           <span className="text-slate-400 text-sm">{watchlist.length} stocks</span>
         </div>
-
-        {watchlist.length === 0 ? (
-          <p className="text-slate-400 text-center py-6">
-            No stocks in watchlist. Search and click " + Add" to add stocks.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {watchlist.map((stock, index) => (
-              <div key={index} className="bg-[#111c33] p-4 rounded-xl hover:border hover:border-indigo-500 transition-all">
-                <div className="flex justify-between">
-                  <h3 className="text-white font-bold">{stock}</h3>
-
-                </div>
-                <p className="text-green-500 mt-2">₹ 2,912.40</p>
-                <p className="text-green-400 text-sm">+1.48%</p>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {watchlist.map((stock, index) => (
+            <div key={index} className="bg-[#111c33] p-4 rounded-xl hover:border hover:border-indigo-500 transition-all">
+              <h3 className="text-white font-bold">{stock.symbol}</h3>
+              <p className="text-green-500 mt-2">₹{stock.price}</p>
+              <p className={`text-sm ${stock.change.includes("-") ? "text-red-500" : "text-green-400"}`}>
+                {stock.change}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* ✅ NEW: Save Portfolio + Export PDF Buttons */}
+      {/* Buttons */}
       <div className="flex gap-4 mt-6">
         <button className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl text-white font-semibold transition-all">
           Save Portfolio
@@ -390,12 +460,9 @@ export default function Dashboard() {
 
       {/* Footer */}
       <footer className="mt-12 border-t border-slate-800 pt-6 text-center">
-        <p className="text-slate-400">
-          © 2026 AI Financial Intelligence Platform
-        </p>
-        <p className="text-indigo-400 mt-2">
-          Built by Indar Singh Rajawat
-        </p>
+        <p className="text-slate-400">© 2026 AI Financial Intelligence Platform</p>
+        <p className="text-indigo-400 mt-2">Built by Indar Singh Rajawat</p>
+        <p className="text-slate-500 text-sm mt-1">BS Applied AI & Data Science | IIT Jodhpur</p>
       </footer>
     </div>
   );
