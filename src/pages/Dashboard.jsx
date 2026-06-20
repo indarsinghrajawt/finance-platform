@@ -6,8 +6,10 @@ import TechnicalIndicators from "../components/TechnicalIndicators";
 import SentimentGauge from "../components/SentimentGauge";
 import AIRecommendation from "../components/AIRecommendation";
 import TradingChart from "../components/TradingChart";
-import { Bell, Moon, Loader2 } from "lucide-react";
+import { Bell, Moon } from "lucide-react";
 import jsPDF from "jspdf";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase";
 
 import {
   ResponsiveContainer,
@@ -28,38 +30,28 @@ export default function Dashboard() {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [news, setNews] = useState([]);
+  const [user, setUser] = useState(null);
 
   const [recentSearches, setRecentSearches] = useState(
     () => JSON.parse(localStorage.getItem("recentSearches") || "[]")
   );
-
-  // Watchlist fixed - read-only
-  const [watchlist] = useState([
+  const [watchlist, setWatchlist] = useState([
     { symbol: "RELIANCE", price: 2912.40, change: "+1.48%" },
     { symbol: "TCS", price: 4120.50, change: "+2.10%" },
     { symbol: "HDFC", price: 1685.25, change: "+0.95%" },
     { symbol: "INFY", price: 1478.80, change: "+1.22%" },
   ]);
 
+  // ✅ Currency fix helper
   const isIndianStock = (s) => INDIAN_STOCKS.includes(s?.toUpperCase());
   const formatPrice = (price, stock) =>
     price !== "--" ? `${isIndianStock(stock) ? "₹" : "$"}${price}` : "--";
 
   const loadData = async () => {
-    setLoading(true);
     const data = await getStockData(symbol);
     setStockInfo(data);
     setSelectedStock(symbol.toUpperCase());
-    setStockPrice(data?.c || "--");
-    setLastUpdated(new Date().toLocaleTimeString());
-    setLoading(false);
-  };
-
-  const refreshData = async (currentSymbol) => {
-    const data = await getStockData(currentSymbol);
-    setStockInfo(data);
     setStockPrice(data?.c || "--");
     setLastUpdated(new Date().toLocaleTimeString());
   };
@@ -85,7 +77,7 @@ export default function Dashboard() {
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(20);
-    doc.text("AI Financial Intelligence Platform", 20, 20);
+    doc.text("Financial Intelligence Platform", 20, 20);
     doc.setFontSize(14);
     doc.text(`Stock: ${symbol}`, 20, 40);
     doc.text("Portfolio Value: ₹12,45,678", 20, 50);
@@ -94,23 +86,36 @@ export default function Dashboard() {
     doc.save("portfolio-report.pdf");
   };
 
-  // Load once on mount
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("loginTime");
+    window.location.href = "/";
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const loginTime = localStorage.getItem("loginTime");
+
+    if (loginTime) {
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      if (Date.now() - Number(loginTime) > twentyFourHours) {
+        localStorage.removeItem("loginTime");
+        signOut(auth);
+        window.location.href = "/";
+      }
+    }
+  }, []);
+
   useEffect(() => {
     loadData();
     loadNews();
-  }, []);
-
-  // 5 sec auto-refresh - selectedStock use karo, symbol nahi
-  useEffect(() => {
-    if (!selectedStock) return;
-    const interval = setInterval(() => { refreshData(selectedStock); }, 5000);
-    return () => clearInterval(interval);
-  }, [selectedStock]);
-
-  // News refresh every 60 sec
-  useEffect(() => {
-    const newsInterval = setInterval(() => { loadNews(); }, 60000);
-    return () => clearInterval(newsInterval);
   }, []);
 
   const portfolioData = [
@@ -131,6 +136,7 @@ export default function Dashboard() {
   const aiSignal = getRecommendation();
   const COLORS = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444"];
 
+  // ✅ Best Performer - dynamic from watchlist
   const bestPerformer = watchlist.reduce((a, b) =>
     parseFloat(a.change) > parseFloat(b.change) ? a : b
   );
@@ -152,16 +158,13 @@ export default function Dashboard() {
             />
             <button
               onClick={handleSearch}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 px-6 py-3 rounded-xl text-white flex items-center gap-2 transition-all"
+              className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl text-white"
             >
-              {loading ? (
-                <><Loader2 size={18} className="animate-spin" /> Loading...</>
-              ) : "Search"}
+              Search
             </button>
           </div>
 
-          {/* Recent Searches with Clear */}
+          {/* ✅ Recent Searches with Clear */}
           {recentSearches.length > 0 && (
             <div className="flex gap-2 items-center">
               <span className="text-slate-500 text-xs">Recent:</span>
@@ -174,6 +177,7 @@ export default function Dashboard() {
                   {s}
                 </button>
               ))}
+              {/* ✅ Clear recent searches */}
               <button
                 onClick={() => {
                   localStorage.removeItem("recentSearches");
@@ -217,7 +221,7 @@ export default function Dashboard() {
             onClick={() => setShowProfile(!showProfile)}
             className="bg-indigo-600 hover:bg-indigo-700 w-10 h-10 rounded-full text-white font-bold transition-all"
           >
-            I
+            {(user?.displayName || user?.email || "U").charAt(0).toUpperCase()}
           </button>
         </div>
       </div>
@@ -229,9 +233,17 @@ export default function Dashboard() {
       )}
 
       {showProfile && (
-        <div className="absolute right-10 top-24 bg-[#111c33] p-4 rounded-xl shadow-xl z-50">
-          <h3 className="text-white font-bold">Indar Singh Rajawat</h3>
-          <p className="text-slate-400">AI & Data Science Student</p>
+        <div className="absolute right-10 top-24 bg-[#111c33] p-4 rounded-xl shadow-xl z-50 w-64">
+          <h2 className="text-white font-bold text-lg">
+            {user?.displayName || user?.email?.split("@")[0] || "User"}
+          </h2>
+
+          <button
+            onClick={handleLogout}
+            className="w-full mt-4 bg-red-600 hover:bg-red-700 py-2 rounded-lg text-white"
+          >
+            Logout
+          </button>
         </div>
       )}
 
@@ -241,7 +253,9 @@ export default function Dashboard() {
 
       {/* Hero Banner */}
       <div className="bg-gradient-to-r from-indigo-600 via-blue-500 to-green-500 rounded-3xl p-8 mb-6 shadow-xl">
-        <h2 className="text-white text-3xl font-bold">Welcome Back, Indar 👋</h2>
+        <h2 className="text-white text-3xl font-bold">
+          Welcome Back, {user?.email?.split("@")[0] || "User"} 👋
+        </h2>
         <p className="text-white mt-2">
           Track stocks, portfolio performance and AI predictions.
         </p>
@@ -252,9 +266,13 @@ export default function Dashboard() {
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">Current Stock</p>
           <h3 className="text-white text-3xl font-bold mt-2">{selectedStock}</h3>
+
+          {/* ✅ Currency fix - INR for Indian, USD for US */}
           <p className="text-green-500 mt-1 text-lg font-semibold">
             {formatPrice(stockPrice, selectedStock)}
           </p>
+
+          {/* ✅ Change color */}
           {stockInfo?.dp != null && (
             <p className="mt-1">
               {stockInfo.dp > 0 ? (
@@ -264,10 +282,13 @@ export default function Dashboard() {
               )}
             </p>
           )}
+
+          {/* ✅ Live badge */}
           <div className="flex items-center gap-2 mt-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
             <span className="text-green-500 text-xs">LIVE</span>
           </div>
+
           <p className="text-slate-400 text-xs mt-1">Updated: {lastUpdated}</p>
         </div>
 
@@ -289,6 +310,7 @@ export default function Dashboard() {
           <p className="text-slate-400">AI Accuracy</p>
           <h3 className="text-green-500 text-3xl font-bold mt-2">87.6%</h3>
         </div>
+        {/* ✅ Portfolio Growth Card */}
         <div className="bg-[#0e1729] rounded-2xl p-5 border border-slate-800 hover:-translate-y-1 hover:shadow-2xl transition-all">
           <p className="text-slate-400">Portfolio Growth</p>
           <h3 className="text-green-500 text-3xl font-bold mt-2">+12.8%</h3>
@@ -432,17 +454,26 @@ export default function Dashboard() {
           <h3 className="text-white text-xl">Watchlist</h3>
           <span className="text-slate-400 text-sm">{watchlist.length} stocks</span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {watchlist.map((stock, index) => (
-            <div key={index} className="bg-[#111c33] p-4 rounded-xl hover:border hover:border-indigo-500 transition-all">
-              <h3 className="text-white font-bold">{stock.symbol}</h3>
-              <p className="text-green-500 mt-2">₹{stock.price}</p>
-              <p className={`text-sm ${stock.change.includes("-") ? "text-red-500" : "text-green-400"}`}>
-                {stock.change}
-              </p>
-            </div>
-          ))}
-        </div>
+
+        {watchlist.length === 0 ? (
+          <p className="text-slate-400 text-center py-6">No stocks in watchlist.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {watchlist.map((stock, index) => (
+              <div key={index} className="bg-[#111c33] p-4 rounded-xl hover:border hover:border-indigo-500 transition-all">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-white font-bold">{stock.symbol}</h3>
+                </div>
+                <p className="text-green-500 mt-2">
+                  {formatPrice(stock.price, stock.symbol)}
+                </p>
+                <p className={`text-sm ${stock.change.includes("-") ? "text-red-500" : "text-green-400"}`}>
+                  {stock.change}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Buttons */}
@@ -458,11 +489,10 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Footer */}
+      {/* ✅ Footer Upgraded */}
       <footer className="mt-12 border-t border-slate-800 pt-6 text-center">
-        <p className="text-slate-400">© 2026 AI Financial Intelligence Platform</p>
+        <p className="text-slate-400">© 2026 Financial Intelligence Platform</p>
         <p className="text-indigo-400 mt-2">Built by Indar Singh Rajawat</p>
-        <p className="text-slate-500 text-sm mt-1">BS Applied AI & Data Science | IIT Jodhpur</p>
       </footer>
     </div>
   );

@@ -16,16 +16,16 @@ export default function Sidebar() {
   const location = useLocation();
 
   const menu = [
-    { name: "Dashboard", icon: LayoutDashboard, path: "/" },
-    { name: "Market Overview", icon: BarChart3, path: "/market" },
-    { name: "Stock Analysis", icon: TrendingUp, path: "/analysis" },
-    { name: "Predictions", icon: LineChart, path: "/predictions" },
-    { name: "News Sentiment", icon: Newspaper, path: "/news" },
-    { name: "Portfolio", icon: Briefcase, path: "/portfolio" },
-    { name: "Watchlist", icon: Star, path: "/watchlist" },
-    { name: "Alerts", icon: Bell, path: "/alerts" },
-    { name: "Settings", icon: Settings, path: "/settings" },
-  ];
+  { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+  { name: "Market Overview", icon: BarChart3, path: "/market" },
+  { name: "Stock Analysis", icon: TrendingUp, path: "/analysis" },
+  { name: "Predictions", icon: LineChart, path: "/predictions" },
+  { name: "News Sentiment", icon: Newspaper, path: "/news" },
+  { name: "Portfolio", icon: Briefcase, path: "/portfolio" },
+  { name: "Watchlist", icon: Star, path: "/watchlist" },
+  { name: "Alerts", icon: Bell, path: "/alerts" },
+  { name: "Settings", icon: Settings, path: "/settings" },
+];
 
   return (
     <div className="w-72 h-screen sticky top-0 bg-[#071122] border-r border-[#16243d] p-4 flex flex-col overflow-y-auto">
@@ -33,7 +33,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="mb-8">
         <h1 className="text-white text-3xl font-bold">
-          AI Financial
+          Financial
         </h1>
 
         <p className="text-slate-400 text-sm">
@@ -62,22 +62,8 @@ export default function Sidebar() {
         })}
       </div>
 
-      {/* Bottom Cards */}
-      <div className="mt-auto space-y-4 pt-6">
-
-        <div className="bg-[#111827] rounded-2xl p-4 shadow-md">
-          <h3 className="text-white font-semibold text-lg">
-            Market Status
-          </h3>
-
-          <p className="text-green-500 font-bold mt-3 text-xl">
-            Open
-          </p>
-
-          <p className="text-slate-400 text-sm">
-            Next Close: 03:30 PM
-          </p>
-        </div>
+      {/* Bottom Card */}
+      <div className="mt-auto pt-6">
 
         <div className="bg-[#111827] rounded-2xl p-4 shadow-md">
           <h3 className="text-white font-semibold text-lg">
@@ -94,6 +80,7 @@ export default function Sidebar() {
         </div>
 
       </div>
+
     </div>
   );
 }
