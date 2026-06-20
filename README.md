@@ -1,16 +1,95 @@
-# React + Vite
+# 🚀 Financial Intelligence Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An AI-powered financial dashboard built using React, Firebase, Tailwind CSS, and modern web technologies.
 
-Currently, two official plugins are available:
+## 🌟 Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* 🔐 Firebase Authentication (Email & Google Login)
+* 📊 Interactive Financial Dashboard
+* 📈 Stock Analysis Section
+* 🤖 AI-Based Predictions
+* 📰 News Sentiment Analysis
+* ⭐ Watchlist Management
+* 💼 Portfolio Tracking
+* 🚨 Alerts System
+* ⚙️ User Settings
+* 🌙 Modern Dark UI Design
+* 📱 Responsive Layout
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+* React.js
+* Vite
+* Tailwind CSS
+* Firebase Authentication
+* Firestore Database
+* React Router DOM
+* Lucide React Icons
 
-## Expanding the ESLint configuration
+## 📂 Project Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+src/
+├── components/
+├── pages/
+├── firebase.js
+├── App.jsx
+└── main.jsx
+
+## ⚡ Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/indarsinghrajawt/finance-platform.git
+```
+
+Go to project folder:
+
+```bash
+cd finance-platform
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run locally:
+
+```bash
+npm run dev
+```
+
+## 🔑 Firebase Setup
+
+Create a Firebase project and add your configuration inside:
+
+```bash
+src/firebase.js
+```
+
+Enable:
+
+* Email/Password Authentication
+* Google Authentication
+* Firestore Database
+
+Add your deployment domain in:
+
+Authentication → Settings → Authorized Domains
+
+## 🌐 Live Demo
+
+https://indar-finance-platform.netlify.app
+
+## 👨‍💻 Developer
+
+**Indar Singh Rajawat**
+
+* IIT Jodhpur – BS in Applied AI & Data Science
+* GitHub: https://github.com/indarsinghrajawt
+
+## 📜 License
+
+This project is for educational and portfolio purposes.
